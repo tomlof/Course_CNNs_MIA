@@ -1,6 +1,6 @@
 # Introduction to machine learning
 
-Contains three machine learning exercises:
+Contains five machine learning exercises:
  - Polynomial regression in scikit-learn
  - Regression in scikit-learn on the Boston house-prices dataset
  - Classification in scikit-learn on the UCI Wine recognition dataset
