@@ -54,6 +54,7 @@ def threadsafe_generator(f):
         return threadsafe_iter(f(*a, **kw))
     return g
 
+
 # =============================================================================================================
 # 3D
 # =============================================================================================================
@@ -146,22 +147,19 @@ def get_train_valid_test_split(ids, train_split, val_split, test_split):
     return train_list, val_list, test_list
 
 
-def get_data_from_file(config, index, patch_shape=None):
+def get_data_from_file(config, subject_data, index, patch_shape=None):
     if patch_shape:
         patient_path, patch_index = index
         data, truth = get_data_from_file(
-            config, patient_path, patch_shape=None)
+            config, subject_data, patient_path, patch_shape=None)
         x = get_patch_from_3d_data(data, patch_shape, patch_index)
         y = get_patch_from_3d_data(truth, patch_shape, patch_index)
     else:
-        images = read_image_files(config, index)
-        subject_data = [image.get_fdata() for image in images]
-
         if len(subject_data) > 2:
             x = np.asarray(subject_data[:-2])
         else:
             x = np.asarray(subject_data[-2])
-        y = np.asarray(subject_data[-1])
+        y = np.asarray(subject_data[-1], dtype=np.uint8)
     return x, y
 
 
@@ -179,17 +177,26 @@ def save_all_patches_data_generator(config, index_list):
 
     count_is_write = 0
     len_index_list = len(index_list)
+
+    patient_path_prev = subject_data = None
     while len(index_list) > 0:
         index = index_list.pop()
         path_data, path_truth = get_path_patch(
             folder, index, config["patch_shape"])
 
+        patient_path, index_path = index
+        if patient_path != patient_path_prev:
+            images = read_image_files(config, patient_path)
+            subject_data = [image.get_fdata() for image in images]
+        patient_path_prev = patient_path
+
         try:
             data, truth = read_pickle(
                 path_data), read_pickle(path_truth)
         except:
-            # if not os.path.exists(path_data) or not os.path.exists(path_truth):
-            data, truth = get_data_from_file(config, index,
+            data, truth = get_data_from_file(config,
+                                             subject_data,
+                                             index,
                                              patch_shape=config["patch_shape"])
             count_is_write += 1
             write_pickle(data, path_data)
@@ -263,6 +270,13 @@ def augment_data3d(data, truth):
     return data, truth
 
 
+def normalize_data3d(data):
+    """ data augumentation """
+    # Place your data augmentation implementation here
+    """ data augumentation """
+    return data
+
+
 def add_data3d(x_list, y_list, config, index, patch_shape=None, augment=True):
     """
     Adds data from the data file to the given lists of feature and target data
@@ -320,13 +334,13 @@ def read_pickle(path):
 
 
 def get_path_patch(folder, index, patch_shape):
-    idx = index[0]
+    idx = get_filename_without_extension(index[0])
     fr = np.ndarray.tolist(index[1])
     patch_shape = list(patch_shape)
-    name = "{}_{}_{}".format(str(idx), '_'.join(str(e)
+    name = "{}-{}-{}".format(str(idx), '_'.join(str(e)
                                                 for e in fr), '_'.join(str(e) for e in patch_shape))
-    name_data = name + "_data.pickle"
-    name_truth = name + "_truth.pickle"
+    name_data = name + "-data.pickle"
+    name_truth = name + "-truth.pickle"
     path_data = os.path.join(folder, name_data)
     path_truth = os.path.join(folder, name_truth)
     return path_data, path_truth
@@ -356,7 +370,10 @@ def read_image_files(config, patient_path):
                                                     modality))
     image_list = list()
     for index, image_file in enumerate(image_files):
-        image_list.append(read_image(image_file))
+        image = read_image(image_file)
+        if index < len(modalities) - 1:
+            image = normalize_data3d(image)
+        image_list.append(image)
     return image_list
 
 
@@ -365,7 +382,7 @@ def read_image(in_file, crop=None):
         if image.shape[-1] == 1:
             return image.__class__(dataobj=np.squeeze(image.get_data()), affine=image.affine)
         return image
-    print("Reading: {0}".format(in_file))
+    # print("Reading: {0}".format(in_file))
     image = nib.load(os.path.abspath(in_file))
     image = fix_shape(image)
     return image
@@ -467,9 +484,6 @@ def get_number_of_patches3d(config, index_list, patch_shape=None, patch_overlap=
                        patch_shape=patch_shape)
             if len(x_list) > 0:
                 count += 1
-
-                # # for debuging
-                # x, y = convert_data3d(x_list, y_list, n_labels=3, labels=(0,1,2))
 
         return count
     else:
