@@ -7,7 +7,7 @@ import numpy as np
 # D_out is output dimension.
 N, D_in, H, D_out = 64, 1000, 100, 10
 
-# create placeholders
+# create Placeholders to hold input and outputs
 x = tf.placeholder(tf.float32,
                    shape=(None, D_in))
 y = tf.placeholder(tf.float32,

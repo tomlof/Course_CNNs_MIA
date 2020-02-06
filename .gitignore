@@ -106,3 +106,4 @@ venv.bak/
 *nii.gz
 *.json
 *.pickle
+data/
