@@ -12,7 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-#    data generator was modified from "https://github.com/ellisdg/3DUnetCNN"
+#    data generator was based on "https://github.com/ellisdg/3DUnetCNN"
 
 
 import threading
@@ -87,7 +87,8 @@ def get_training_and_validation_and_testing_generators3d(config,
     train_list, val_list, test_list = get_train_valid_test_split(ids,
                                                                  train_split,
                                                                  val_split,
-                                                                 test_split)
+                                                                 test_split,
+                                                                 is_shuffle_data=True)
 
     print("train_list:", train_list)
 
@@ -135,12 +136,14 @@ def get_training_and_validation_and_testing_generators3d(config,
         return test_generator
 
 
-def get_train_valid_test_split(ids, train_split, val_split, test_split):
+def get_train_valid_test_split(ids, train_split, val_split, test_split, is_shuffle_data=False):
     def get_ids_from_split(ids, split_str):
         split = [int(s) for s in split_str.split(":") if s.isdigit()]
         return ids[split[0]:split[1]]
 
-    shuffle(ids)
+    if is_shuffle_data:
+        shuffle(ids)
+
     train_list = get_ids_from_split(ids, train_split)
     val_list = get_ids_from_split(ids, val_split)
     test_list = get_ids_from_split(ids, test_split)
@@ -297,7 +300,7 @@ def add_data3d(x_list, y_list, config, index, patch_shape=None, augment=True):
             for i in range(data.shape[0]):
                 data_list.append(data[i, :, :, :])
             data_list.append(truth[:, :, :])
-            data_list = augment_data3d(data=data_list, )
+            data_list = augment_data3d(data=data_list, truth=truth)
             for i in range(data.shape[0]):
                 data[i, :, :, :] = data_list[i]
             truth[:, :, :] = data_list[-1]
@@ -497,89 +500,6 @@ def make_dir(dir):
         os.makedirs(dir)
 
 
-# =============================================================================================================
-# main
-# =============================================================================================================
-def init_config():
-    config = dict()
-
-    # ===============================================================================
-    # Paths
-    # ===============================================================================
-    config["base"] = "C:/Users/minhm/Documents/GitHub/Course_CNNs_MIA/projects"
-    config["raw_dataset_dir"] = os.path.join(config["base"], "data/raw")
-    config["id_dataset_path"] = os.path.join(config["base"], "data/ids.txt")
-    config["splitted_dataset_dir"] = os.path.join(
-        config["base"], "data/splitted")
-
-    # ===============================================================================
-    # Project description
-    # ===============================================================================
-    config["all_modalities"] = ["t1", "t1ce", "flair", "t2"]
-    config["training_modalities"] = ["t1"]
-    config["truth"] = ["seg"]
-
-    # ===============================================================================
-    # Training configurations
-    # ===============================================================================
-    # the label numbers to be trained
-    config["labels"] = (1, 2, 4)
-    # number of labels to be trained
-    config["n_labels"] = len(config["labels"])
-    # default batch size for 2d network
-    config["batch_size_2d"] = 16
-    # default batch size for 3d network
-    config["batch_size_3d"] = 1
-
-    # ------------------------------------------------------------------------------
-    # do not modify these unless you know what you are doing
-    # ------------------------------------------------------------------------------
-    # workers: Integer. Maximum number of processes to spin up when using process-based threading.
-    # If unspecified, workers will default to 1. If 0, will execute the generator on the main thread.
-    config["workers"] = 4
-    # Integer. Maximum size for the generator queue. If unspecified, max_queue_size will default to 10.
-    config["max_queue_size"] = 4
-    # Boolean. If True, use process-based threading. If unspecified, use_multiprocessing
-    # will default to False. Note that because this implementation relies on multiprocessing,
-    # you should not pass non-picklable arguments to the generator as
-    # they can't be passed easily to children processes.
-    config["use_multiprocessing"] = True
-
-    # ===============================================================================
-    # Image configurations
-    # ===============================================================================
-    # image shape
-    config["image_shape"] = (240, 240, 155)
-    # default patch shape for 2d network
-    config["patch_shape_2d"] = (240, 240, 1)
-    # default patch shape for 3d network
-    config["patch_shape_3d"] = (64, 64, 64)
-
-    # ===============================================================================
-    # Patch extraction for training configurations
-    # ===============================================================================
-    # if True, then patches without any target will be skipped
-    config["batch_size"] = config["batch_size_3d"]
-    config["patch_shape"] = config["patch_shape_3d"]
-    config["cropping_slices"] = (0, 0, 0)
-    config["patch_overlap"] = (0, 0, 0)
-    config["skip_blank"] = True
-
-    # ===============================================================================
-    # Training config_commonurations
-    # ===============================================================================
-    # cutoff the training after this many epochs
-    config["n_epochs"] = 200
-    # learning rate will be reduced after this many epochs if the validation loss is not improving
-    config["patience"] = 5
-    # training will be stopped after this many epochs without the validation loss improving
-    config["early_stop"] = 12
-    # initial learning rate
-    config["initial_learning_rate"] = 1e-4
-
-    return config
-
-
 def setup_generator(config, is_training=True, model_dim=3,
                     train_split="0:214", val_split="214:268", test_split="268:335"):
     """
@@ -622,44 +542,16 @@ def setup_generator(config, is_training=True, model_dim=3,
         return test_generator
 
 
-def main():
-    config = init_config()
-    ids = glob.glob(os.path.join(config["raw_dataset_dir"], "*", "*"))
+# def main():
+#     config = init_config()
+#     ids = glob.glob(os.path.join(config["raw_dataset_dir"], "*", "*"))
 
-    # train_list, val_list, test_list = get_train_valid_test_split(ids,
-    #                                                              train_split="0:5",
-    #                                                              val_split="5:8",
-    #                                                              test_split="8:10")
-    # #  train_split = "0:214",
-    # #  val_split = "214:268",
-    # #  test_split = "268:335")
-
-    # patch_indices = compute_patch_indices(image_shape=config["image_shape"],
-    #                                       patch_shape=config["patch_shape_3d"],
-    #                                       overlap=config["patch_overlap"],
-    #                                       cropping_slices=config["cropping_slices"])
-
-    # # print(patch_indices)
-
-    # index_list = create_patch_index_list(train_list,
-    #                                      image_shape=config["image_shape"],
-    #                                      patch_shape=config["patch_shape_3d"],
-    #                                      patch_overlap=config["patch_overlap"],
-    #                                      cropping_slices=config["cropping_slices"])
-
-    # # print(index_list)
-
-    # data, truth = get_data_from_file(
-    #     config, index_list[15], patch_shape=(64, 64, 64))
-
-    # a = 2
-
-    train_generator, validation_generator, n_train_steps, n_validation_steps = setup_generator(config,
-                                                                                               is_training=True,
-                                                                                               train_split="0:5",
-                                                                                               val_split="5:8",
-                                                                                               test_split="8:10")
+#     train_generator, validation_generator, n_train_steps, n_validation_steps = setup_generator(config,
+#                                                                                                is_training=True,
+#                                                                                                train_split="0:5",
+#                                                                                                val_split="5:8",
+#                                                                                                test_split="8:10")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
