@@ -90,6 +90,8 @@ def get_training_and_validation_and_testing_generators3d(config,
                                                                  test_split,
                                                                  is_shuffle_data=True)
 
+    make_dir(config["model_path"])
+
     print("train_list:", train_list)
 
     print(">> prepare train generator")
@@ -110,23 +112,21 @@ def get_training_and_validation_and_testing_generators3d(config,
         print(">> save test...")
         save_all_patches_data_generator(config, test_list)
 
-    train_index_list = create_patch_index_list(train_list,
-                                               image_shape=config["image_shape"],
-                                               patch_shape=config["patch_shape"],
-                                               patch_overlap=config["patch_overlap"],
-                                               cropping_slices=config["cropping_slices"])
-
-    val_index_list = create_patch_index_list(val_list,
-                                             image_shape=config["image_shape"],
-                                             patch_shape=config["patch_shape"],
-                                             patch_overlap=config["patch_overlap"],
-                                             cropping_slices=config["cropping_slices"])
-
     print(">> compute number of training and validation steps")
-    num_training_steps = get_number_of_steps(
-        len(train_index_list), config["batch_size"])
-    num_validation_steps = get_number_of_steps(
-        len(val_index_list), config["batch_size"])
+    num_training_steps = get_number_of_steps(get_number_of_patches3d(config,
+                                                                     train_list,
+                                                                     patch_shape=config["patch_shape"],
+                                                                     patch_overlap=config["patch_overlap"],
+                                                                     cropping_slices=config["cropping_slices"]
+                                                                     ),
+                                             config["batch_size"])
+    num_validation_steps = get_number_of_steps(get_number_of_patches3d(config,
+                                                                       val_list,
+                                                                       patch_shape=config["patch_shape"],
+                                                                       patch_overlap=config["patch_overlap"],
+                                                                       cropping_slices=config["cropping_slices"]
+                                                                       ),
+                                               config["batch_size"])
 
     if is_training:
         print("Number of training steps: ", num_training_steps)
@@ -159,15 +159,16 @@ def get_data_from_file(config, subject_data, index, patch_shape=None):
         y = get_patch_from_3d_data(truth, patch_shape, patch_index)
     else:
         if len(subject_data) > 2:
-            x = np.asarray(subject_data[:-2])
+            x = np.asarray(subject_data[:-1])
         else:
             x = np.asarray(subject_data[-2])
         y = np.asarray(subject_data[-1], dtype=np.uint8)
+    if len(x.shape) == 3:
+        x = np.expand_dims(x, axis=0)
     return x, y
 
 
 def save_all_patches_data_generator(config, index_list):
-    orig_index_list = index_list
     if config["patch_shape"] is not None:
         index_list = create_patch_index_list(index_list,
                                              image_shape=config["image_shape"],
@@ -187,7 +188,7 @@ def save_all_patches_data_generator(config, index_list):
         path_data, path_truth = get_path_patch(
             folder, index, config["patch_shape"])
 
-        patient_path, index_path = index
+        patient_path, _ = index
         if patient_path != patient_path_prev:
             images = read_image_files(config, patient_path)
             subject_data = [image.get_fdata() for image in images]
@@ -201,6 +202,7 @@ def save_all_patches_data_generator(config, index_list):
                                              subject_data,
                                              index,
                                              patch_shape=config["patch_shape"])
+
             count_is_write += 1
             write_pickle(data, path_data)
             write_pickle(truth, path_truth)
@@ -269,6 +271,7 @@ def get_multi_class_labels3d(data, n_labels, labels=None):
 def augment_data3d(data, truth):
     """ data augumentation """
     # Place your data augmentation implementation here
+    # Hint: try tensorlayer or you can implement yourself
     """ data augumentation """
     return data, truth
 
@@ -299,11 +302,9 @@ def add_data3d(x_list, y_list, config, index, patch_shape=None, augment=True):
             data_list = list()
             for i in range(data.shape[0]):
                 data_list.append(data[i, :, :, :])
-            data_list.append(truth[:, :, :])
-            data_list = augment_data3d(data=data_list, truth=truth)
+            data_list, truth = augment_data3d(data=data_list, truth=truth)
             for i in range(data.shape[0]):
                 data[i, :, :, :] = data_list[i]
-            truth[:, :, :] = data_list[-1]
         truth = truth[np.newaxis]
 
         x_list.append(data)
@@ -472,8 +473,10 @@ def get_number_of_patches3d(config, index_list, patch_shape=None, patch_overlap=
                             cropping_slices=None,
                             ):
     if patch_shape:
-        index_list = create_patch_index_list(index_list, config,
-                                             patch_shape, patch_overlap,
+        index_list = create_patch_index_list(index_list,
+                                             image_shape=config["image_shape"],
+                                             patch_shape=patch_shape,
+                                             patch_overlap=patch_overlap,
                                              cropping_slices=cropping_slices)
 
         count = 0
@@ -487,6 +490,10 @@ def get_number_of_patches3d(config, index_list, patch_shape=None, patch_overlap=
                        patch_shape=patch_shape)
             if len(x_list) > 0:
                 count += 1
+
+                # for debuging
+                x, y = convert_data3d(
+                    x_list, y_list, n_labels=3, labels=(0, 1, 2, 4))
 
         return count
     else:
@@ -540,18 +547,3 @@ def setup_generator(config, is_training=True, model_dim=3,
             patch_overlap=config["patch_overlap"],
             cropping_slices=config["cropping_slices"])
         return test_generator
-
-
-# def main():
-#     config = init_config()
-#     ids = glob.glob(os.path.join(config["raw_dataset_dir"], "*", "*"))
-
-#     train_generator, validation_generator, n_train_steps, n_validation_steps = setup_generator(config,
-#                                                                                                is_training=True,
-#                                                                                                train_split="0:5",
-#                                                                                                val_split="5:8",
-#                                                                                                test_split="8:10")
-
-
-# if __name__ == "__main__":
-#     main()

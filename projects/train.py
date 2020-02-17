@@ -17,8 +17,10 @@ def init_config():
     config["id_dataset_path"] = os.path.join(config["base"], "data/ids.txt")
     config["splitted_dataset_dir"] = os.path.join(
         config["base"], "data/splitted")
+    config["model_path"] = os.path.join(
+        config["base"], "data/model")
     config["model_file"] = os.path.join(
-        config["base"], "data/model/best_model.h5")
+        config["model_path"], "best_model.h5")
 
     # ===============================================================================
     # Project description
@@ -32,8 +34,12 @@ def init_config():
     # ===============================================================================
     # the label numbers to be trained
     config["labels"] = (1, 2, 4)
+    config["labels"] = (1)
     # number of labels to be trained
-    config["n_labels"] = len(config["labels"])
+    try:
+        config["n_labels"] = len(config["labels"])
+    except:
+        config["n_labels"] = 1
     # default batch size for 2d network
     config["batch_size_2d"] = 16
     # default batch size for 3d network
@@ -44,14 +50,14 @@ def init_config():
     # ------------------------------------------------------------------------------
     # workers: Integer. Maximum number of processes to spin up when using process-based threading.
     # If unspecified, workers will default to 1. If 0, will execute the generator on the main thread.
-    config["workers"] = 4
+    config["workers"] = 1
     # Integer. Maximum size for the generator queue. If unspecified, max_queue_size will default to 10.
-    config["max_queue_size"] = 4
+    config["max_queue_size"] = 2
     # Boolean. If True, use process-based threading. If unspecified, use_multiprocessing
     # will default to False. Note that because this implementation relies on multiprocessing,
     # you should not pass non-picklable arguments to the generator as
     # they can't be passed easily to children processes.
-    config["use_multiprocessing"] = True
+    config["use_multiprocessing"] = False
 
     # ===============================================================================
     # Image configurations
@@ -93,12 +99,16 @@ def init_config():
 def main():
 
     config = init_config()
-    unet = model.unet(input_size=(64, 64, 64))
+
+    unet = model.unet_model_3d(input_shape=(1, 64, 64, 64),
+                               n_labels=config["n_labels"])
+    unet.summary()
     train_generator, validation_generator, n_train_steps, n_validation_steps = generator.setup_generator(config,
                                                                                                          is_training=True,
                                                                                                          train_split="0:5",
                                                                                                          val_split="5:8",
                                                                                                          test_split="8:10")
+
     model.do_training(unet,
                       train_generator,
                       validation_generator,
