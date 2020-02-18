@@ -15,7 +15,7 @@
 # - Describe the thought process behind building your model and choosing the model hyper-parameters.
 # - Describe what you think are the biggest issues with the current setup, and how to solve them.
 
-# In[ ]:
+# In[1]:
 
 
 # Import necessary packages for loading the dataset
@@ -33,7 +33,7 @@ from torch.autograd import Variable
 np.random.seed(2020)
 
 
-# In[ ]:
+# In[2]:
 
 
 SEED = 1
@@ -54,8 +54,12 @@ device = torch.device("cuda" if use_cuda else "cpu")
 print(device)
 
 
-# In[ ]:
+# In[3]:
 
+
+# Path to dataset downloaded from the provided link
+cwd = os.getcwd()
+data_path = os.path.join(cwd, "Labs/data/cell_images")  # Path to dataset
 
 # Check out dataset
 parasitized_data = os.listdir(data_path + '/Parasitized/')
@@ -68,7 +72,7 @@ print("Number of non-paratisized images: " + str(len(uninfected_data)))
 # NOTE: The images are in .png format, they will have to be loaded individually and handled accordingly.
 
 
-# In[ ]:
+# In[4]:
 
 
 # Look at some sample images
@@ -81,7 +85,7 @@ for i in range(4):
     plt.tight_layout()
 
 plt.suptitle('Parasitized Image Samples')
-plt.show()
+# plt.show()
 
 plt.figure(figsize=(12,4))
 for i in range(4):
@@ -92,14 +96,14 @@ for i in range(4):
     plt.tight_layout()
 
 plt.suptitle('Uninfected Image Samples')
-plt.show()
+# plt.show()
 
 # NOTE: The images are of different size. Also they are RGB images.
 
 
 # ### The dataset preprocessing so far has been to help you, you should not change anything. However, from now on, take nothing for granted.
 
-# In[ ]:
+# In[5]:
 
 
 # Define transforms for the training/validation/testing data
@@ -128,7 +132,7 @@ train_set, val_set, test_set = torch.utils.data.random_split(
     dataset, [num_train, num_val, num_test])
 
 
-# In[ ]:
+# In[6]:
 
 
 # Train loader
@@ -146,7 +150,7 @@ test_loader = torch.utils.data.DataLoader(test_set,
                                           batch_size=batch_size)
 
 
-# In[ ]:
+# In[7]:
 
 
 class CellModel(nn.Module):
@@ -197,7 +201,7 @@ for p in model.parameters():
 
 # ## Train
 
-# In[ ]:
+# In[8]:
 
 
 train_loss = []
