@@ -1,10 +1,13 @@
-import tensorflow.keras as keras
+from torch.utils.data import Dataset
+import torch
+import torch.utils.data
+import torchvision
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 
 
-class DataGenerator(keras.utils.Sequence):
+class DataGenerator(torch.utils.data.Dataset):
     def __init__(self,
                  data_path,
                  inputs,
@@ -89,12 +92,13 @@ class DataGenerator(keras.utils.Sequence):
         return inputs, outputs
 
 
-gen_dir = '/mnt/4a39cb60-7f1f-4651-81cb-029245d590eb/BRATSs/'
-gen = DataGenerator(data_path=gen_dir+'training',
+gen_dir = "C:/Users/minhm/Documents/GitHub/Course_CNNs_MIA/projects/data/"
+gen = DataGenerator(data_path=gen_dir + 'training',
                     inputs=['flair', 't1'],
                     outputs=['mask'],
                     batch_size=16,
                     shuffle=True)
+
 
 while True:
     img_in, img_out = gen.__getitem__(np.random.randint(0, gen.__len__()))
