@@ -1,3 +1,22 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# # Assingment 1 - Malaria Cell Image Classification
+# ### Course: Convolutional Neural Networks with Applications in Medical Image Analysis
+# 
+# Office hours: Mondays 13.15--15.00 (Tommy), Tuesdays 13.15--16.00 (Minh), Thursdays 08.15--12.00 (Attila)
+# 
+# Welcome. The first assignment is based on classifying images of cells, whether they are parasitized or uninfected by malaria. Your input will be an image of a cell, and your output is a binary classifier. It is based on an open dataset, available from Lister Hill National Center for Biomedical Communications (NIH): https://lhncbc.nlm.nih.gov/publication/pub9932. You need to download the file ftp://lhcftp.nlm.nih.gov/Open-Access-Datasets/Malaria/cell_images.zip (as described in the assignment instructions). The data was preprocessed and organized for easier machine learning applications.
+# 
+# Your task is to look through the highly customizable code below, which contains all the main steps for high accuracy classification of these data, and improve upon the model. The most important issues with the current code are noted in the comments for easier comprehension. Your tasks, to include in the report, are:
+# 
+# - Reach an accuracy of at least 96~\% on the validation dataset.
+# - Plot the training/validating losses and accuracies. Describe when to stop training, and why that is a good choice.
+# - Describe the thought process behind building your model and choosing the model hyper-parameters.
+# - Describe what you think are the biggest issues with the current setup, and how to solve them.
+
+# In[ ]:
+
 
 # Import necessary packages for loading the dataset
 
@@ -10,7 +29,11 @@ import matplotlib.pyplot as plt  # Package for plotting
 import cv2
 import os
 import numpy as np  # Package for matrix operations, handling data
+from torch.autograd import Variable
 np.random.seed(2020)
+
+
+# In[ ]:
 
 
 SEED = 1
@@ -26,13 +49,12 @@ if cuda:
     use_cuda = True
 else:
     use_cuda = False
-
+    
 device = torch.device("cuda" if use_cuda else "cpu")
 print(device)
 
 
-# Path to dataset downloaded from the provided link
-data_path = "/home/minhvu/github/Course_CNNs_MIA/Labs/data/cell_images"  # Path to dataset
+# In[ ]:
 
 
 # Check out dataset
@@ -46,8 +68,11 @@ print("Number of non-paratisized images: " + str(len(uninfected_data)))
 # NOTE: The images are in .png format, they will have to be loaded individually and handled accordingly.
 
 
+# In[ ]:
+
+
 # Look at some sample images
-plt.figure(figsize=(12, 5))
+plt.figure(figsize=(12,5))
 for i in range(4):
     plt.subplot(1, 4, i + 1)
     img = plt.imread(data_path + '/Parasitized/' + parasitized_data[i])
@@ -56,9 +81,9 @@ for i in range(4):
     plt.tight_layout()
 
 plt.suptitle('Parasitized Image Samples')
-# plt.show()
+plt.show()
 
-plt.figure(figsize=(12, 4))
+plt.figure(figsize=(12,4))
 for i in range(4):
     plt.subplot(1, 4, i + 1)
     img = plt.imread(data_path + '/Uninfected/' + uninfected_data[i + 1])
@@ -67,31 +92,25 @@ for i in range(4):
     plt.tight_layout()
 
 plt.suptitle('Uninfected Image Samples')
-# plt.show()
+plt.show()
+
+# NOTE: The images are of different size. Also they are RGB images.
+
+
+# ### The dataset preprocessing so far has been to help you, you should not change anything. However, from now on, take nothing for granted.
+
+# In[ ]:
 
 
 # Define transforms for the training/validation/testing data
-train_transforms = transforms.Compose([transforms.Resize(16),
-                                       transforms.ToTensor(),
-                                       transforms.Normalize([0.485, 0.456, 0.406],
-                                                            [0.229, 0.224, 0.225])])
-
-val_transforms = transforms.Compose([transforms.Resize(16),
+transformation = transforms.Compose([transforms.Resize((16, 16)),
                                      transforms.ToTensor(),
                                      transforms.Normalize([0.485, 0.456, 0.406],
                                                           [0.229, 0.224, 0.225])])
 
-test_transforms = transforms.Compose([transforms.Resize(16),
-                                      transforms.ToTensor(),
-                                      transforms.Normalize([0.485, 0.456, 0.406],
-                                                           [0.229, 0.224, 0.225])])
-
-transforms = transforms.Compose([transforms.Resize(16),
-                                 transforms.ToTensor()])
-
 
 # Split dataset into training and testing dataset
-dataset = datasets.ImageFolder(root=data_path, transform=transforms)
+dataset = datasets.ImageFolder(root=data_path, transform=transformation)
 
 # Find number of train/val/test images
 num_images = len(dataset.targets)
@@ -109,18 +128,25 @@ train_set, val_set, test_set = torch.utils.data.random_split(
     dataset, [num_train, num_val, num_test])
 
 
+# In[ ]:
+
+
 # Train loader
+batch_size = 32
 train_loader = torch.utils.data.DataLoader(train_set,
-                                           batch_size=32,
+                                           batch_size=batch_size,
                                            shuffle=True)
 
 # Val loader
 val_loader = torch.utils.data.DataLoader(val_set,
-                                         batch_size=32)
+                                         batch_size=batch_size)
 
 # Test loader
 test_loader = torch.utils.data.DataLoader(test_set,
-                                          batch_size=32)
+                                          batch_size=batch_size)
+
+
+# In[ ]:
 
 
 class CellModel(nn.Module):
@@ -128,7 +154,7 @@ class CellModel(nn.Module):
         super(CellModel, self).__init__()
         # input is 16x16
         # padding=1 for same padding
-        self.conv1 = nn.Conv2d(1, 8, 3, padding=1)
+        self.conv1 = nn.Conv2d(3, 8, 3, padding=1)
         # feature map size is 8x8 by pooling
         # padding=1 for same padding
         self.conv2 = nn.Conv2d(8, 16, 3, padding=1)
@@ -147,21 +173,39 @@ class CellModel(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x)
 
+# NOTE: Are the input sizes correct?
+# NOTE: Are the output sizes correct?
+# NOTE: Is the 'hotmap' activation layer in the model?
+# NOTE: Try to imagine the model layer-by-layer and think it through. Is it doing something reasonable?
+# NOTE: Are the model parameters split "evenly" between the layers? Or is there one huge layer?
+# NOTE: Will the model fit into memory? Is the model too small? Is the model too large?   
 
+
+# NOTE: Are you satisfied with the loss function?
+# NOTE: Are you satisfied with the metric?
+# NOTE: Are you satisfied with the optimizer and its parameters?
+
+    
 model = CellModel()
 model = model.to(device)
+optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
 # check model parameter
 for p in model.parameters():
     print(p.size())
 
-optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
-model.train()
+# ## Train
+
+# In[ ]:
+
+
 train_loss = []
 train_accu = []
 i = 0
-for epoch in range(1):
+for epoch in range(3):
+    model.train()
+    i = 0
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = Variable(data), Variable(target)
         data, target = data.to(device), target.to(device)
@@ -172,9 +216,42 @@ for epoch in range(1):
         train_loss.append(loss.item())
         optimizer.step()   # update gradients
         prediction = output.data.max(1)[1]   # first column has actual prob.
-        accuracy = prediction.eq(target.data).sum()/batch_size*100
+        accuracy = prediction.eq(target.data).sum().item()/batch_size*100
         train_accu.append(accuracy)
         if i % 100 == 0:
-            print('Epoch: {}\tTrain Step: {}\t\tLoss: {:.3f}\tAccuracy: {:.3f}'.format(
+            print('Epoch: {}\t Step: {} \t\t Loss: {:.3f} \t Accuracy: {:.3f}'.format(
                 epoch, i, loss.item(), accuracy))
         i += 1
+
+    with torch.no_grad():
+        correct = 0
+        for data, target in val_loader:
+            data, target = Variable(data), Variable(target)
+            data, target = data.to(device), target.to(device)
+            data, target = Variable(data), Variable(target)
+            output = model(data)
+            prediction = output.data.max(1)[1]
+            correct += prediction.eq(target.data).sum()
+
+        print('Validation accuracy: {:.2f}%'.format(
+            100. * correct / len(val_loader.dataset)))
+
+
+# ## Test
+
+# In[ ]:
+
+
+with torch.no_grad():
+    correct = 0
+    for data, target in test_loader:
+        data, target = Variable(data), Variable(target)
+        data, target = data.to(device), target.to(device)
+        data, target = Variable(data), Variable(target)
+        output = model(data)
+        prediction = output.data.max(1)[1]
+        correct += prediction.eq(target.data).sum()
+
+    print('Testing accuracy: {:.2f}%'.format(
+        100. * correct / len(test_loader.dataset)))
+
