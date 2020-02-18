@@ -15,7 +15,9 @@
 # - Describe the thought process behind building your model and choosing the model hyper-parameters.
 # - Describe what you think are the biggest issues with the current setup, and how to solve them.
 
-# In[1]:
+# ## Initialize
+
+# In[ ]:
 
 
 # Import necessary packages for loading the dataset
@@ -26,14 +28,13 @@ from torch import optim
 from torch import nn
 import torch
 import matplotlib.pyplot as plt  # Package for plotting
-import cv2
 import os
 import numpy as np  # Package for matrix operations, handling data
 from torch.autograd import Variable
 np.random.seed(2020)
 
 
-# In[2]:
+# In[ ]:
 
 
 SEED = 1
@@ -54,12 +55,12 @@ device = torch.device("cuda" if use_cuda else "cpu")
 print(device)
 
 
-# In[3]:
+# In[ ]:
 
 
 # Path to dataset downloaded from the provided link
 cwd = os.getcwd()
-data_path = os.path.join(cwd, "Labs/data/cell_images")  # Path to dataset
+data_path = os.path.join(cwd, "data/cell_images")  # Path to dataset
 
 # Check out dataset
 parasitized_data = os.listdir(data_path + '/Parasitized/')
@@ -72,7 +73,7 @@ print("Number of non-paratisized images: " + str(len(uninfected_data)))
 # NOTE: The images are in .png format, they will have to be loaded individually and handled accordingly.
 
 
-# In[4]:
+# In[ ]:
 
 
 # Look at some sample images
@@ -85,7 +86,7 @@ for i in range(4):
     plt.tight_layout()
 
 plt.suptitle('Parasitized Image Samples')
-# plt.show()
+plt.show()
 
 plt.figure(figsize=(12,4))
 for i in range(4):
@@ -96,14 +97,14 @@ for i in range(4):
     plt.tight_layout()
 
 plt.suptitle('Uninfected Image Samples')
-# plt.show()
+plt.show()
 
 # NOTE: The images are of different size. Also they are RGB images.
 
 
 # ### The dataset preprocessing so far has been to help you, you should not change anything. However, from now on, take nothing for granted.
 
-# In[5]:
+# In[ ]:
 
 
 # Define transforms for the training/validation/testing data
@@ -132,7 +133,7 @@ train_set, val_set, test_set = torch.utils.data.random_split(
     dataset, [num_train, num_val, num_test])
 
 
-# In[6]:
+# In[ ]:
 
 
 # Train loader
@@ -150,7 +151,9 @@ test_loader = torch.utils.data.DataLoader(test_set,
                                           batch_size=batch_size)
 
 
-# In[7]:
+# ## Model
+
+# In[ ]:
 
 
 class CellModel(nn.Module):
@@ -201,7 +204,7 @@ for p in model.parameters():
 
 # ## Train
 
-# In[8]:
+# In[ ]:
 
 
 train_loss = []
