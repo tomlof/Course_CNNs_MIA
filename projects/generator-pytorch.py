@@ -46,7 +46,7 @@ class BratsDataset(torch.utils.data.Dataset):
         'Generate one batch of data'
         # Generate indexes of the batch
         indexes = self.indexes[index:(index + 1)]
-        print(indexes)
+        # print(indexes)
         # Find list of IDs
         list_IDs_temp = [self.file_list[k] for k in indexes]
         # Generate data
