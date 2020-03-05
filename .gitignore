@@ -107,3 +107,4 @@ venv.bak/
 *.json
 *.pickle
 data/
+*.zip
