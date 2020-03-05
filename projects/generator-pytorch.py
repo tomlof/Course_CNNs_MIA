@@ -1,4 +1,4 @@
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import torch
 import torch.utils.data
 import torchvision
@@ -7,19 +7,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-class DataGenerator(torch.utils.data.Dataset):
+class BratsDataset(torch.utils.data.Dataset):
     def __init__(self,
                  data_path,
                  inputs,
-                 outputs,
-                 batch_size=32,
-                 shuffle=True
+                 outputs
                  ):
         self.data_path = data_path
         self.inputs = inputs
         self.outputs = outputs
-        self.batch_size = batch_size
-        self.shuffle = shuffle
         if data_path is None:
             raise ValueError('The data path is not defined.')
         if not os.path.isdir(data_path):
@@ -34,25 +30,23 @@ class DataGenerator(torch.utils.data.Dataset):
             self.n_channels = 1
             for i in range(len(self.inputs)):
                 im = npzfile[self.inputs[i]]
-                self.in_dims.append((self.batch_size,
-                                     *np.shape(im),
-                                     self.n_channels))
+                self.in_dims.append((self.n_channels,
+                                     *np.shape(im)))
             for i in range(len(self.outputs)):
                 im = npzfile[self.outputs[i]]
-                self.out_dims.append((self.batch_size,
-                                      *np.shape(im),
-                                      self.n_channels))
+                self.out_dims.append((self.n_channels,
+                                      *np.shape(im)))
             npzfile.close()
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        return int(np.floor((len(self.file_list)) / self.batch_size))
+        return int(np.floor((len(self.file_list))))
 
     def __getitem__(self, index):
         'Generate one batch of data'
         # Generate indexes of the batch
-        indexes = self.indexes[index * self.batch_size:(index + 1) *
-                               self.batch_size]
+        indexes = self.indexes[index:(index + 1)]
+        # print(indexes)
         # Find list of IDs
         list_IDs_temp = [self.file_list[k] for k in indexes]
         # Generate data
@@ -62,13 +56,9 @@ class DataGenerator(torch.utils.data.Dataset):
     def on_epoch_end(self):
         'Updates indexes after each epoch'
         self.indexes = np.arange(len(self.file_list))
-        if self.shuffle is True:
-            np.random.shuffle(self.indexes)
-    # @threadsafe_generator
 
     def __data_generation(self, temp_list):
-        'Generates data containing batch_size samples'
-        # X : (n_samples, *dim, n_channels)
+        'Generates data containing samples'
         # Initialization
         inputs = []
         outputs = []
@@ -81,31 +71,37 @@ class DataGenerator(torch.utils.data.Dataset):
                 for idx in range(len(self.inputs)):
                     x = npzfile[self.inputs[idx]] \
                         .astype(np.single)
-                    x = np.expand_dims(x, axis=2)
+                    x = np.expand_dims(x, axis=0)
                     inputs[idx][i, ] = x
                 for idx in range(len(self.outputs)):
                     x = npzfile[self.outputs[idx]] \
                         .astype(np.single)
-                    x = np.expand_dims(x, axis=2)
+                    x = np.expand_dims(x, axis=0)
                     outputs[idx][i, ] = x
                 npzfile.close()
         return inputs, outputs
 
 
 gen_dir = "C:/Users/minhm/Documents/GitHub/Course_CNNs_MIA/projects/data/"
-gen = DataGenerator(data_path=gen_dir + 'training',
-                    inputs=['flair', 't1'],
-                    outputs=['mask'],
-                    batch_size=16,
-                    shuffle=True)
+dataset = BratsDataset(data_path=gen_dir + 'training',
+                       inputs=['flair', 't1'],
+                       outputs=['mask'])
+
+dataloader = DataLoader(dataset, batch_size=4,
+                        shuffle=True, num_workers=0)
 
 
-while True:
-    img_in, img_out = gen.__getitem__(np.random.randint(0, gen.__len__()))
+for img_in, img_out in dataloader:
     plt.subplot(1, 3, 1)
-    plt.imshow(img_in[0][0, :, :, 0], cmap='gray')
+    plt.imshow(img_in[0][0, 0, :, :], cmap='gray')
     plt.subplot(1, 3, 2)
-    plt.imshow(img_in[1][0, :, :, 0], cmap='gray')
+    plt.imshow(img_in[1][0, 0, :, :], cmap='gray')
     plt.subplot(1, 3, 3)
-    plt.imshow(img_out[0][0, :, :, 0])
+    plt.imshow(img_out[0][0, 0, :, :])
     plt.show()
+
+
+# print("--------------------------------------------------------------------------")
+
+# for img_in, img_out in dataloader:
+#     a = 2
