@@ -125,8 +125,8 @@ for epoch in range(1000):
     try:
         img_in, img_out = gen_train[np.random.randint(0, len(gen_train))]
         print("sucess!")
-        print(img_in)
-        print(img_out)
+        # print(img_in)
+        # print(img_out)
     except:
         print("fail!")
 
