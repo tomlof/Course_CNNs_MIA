@@ -120,24 +120,37 @@ gen_train = DataGenerator(data_path=gen_dir + 'training',
                           batch_size=batch_size)
 
 # Look at some sample images
-img_in, img_out = gen_train[np.random.randint(0, len(gen_train))]
-for inp in range(np.shape(img_in)[0]):
-    plt.figure(figsize=(12, 5))
-    for i in range(4):
-        plt.subplot(1, 4, i + 1)
-        plt.imshow(img_in[inp][i, :, :, 0])
-        plt.title('Image size: ' + str(np.shape(img_in[inp][i, :, :, 0])))
-        plt.tight_layout()
-    plt.suptitle('Input for array: ' + gen_train.inputs[inp])
-    plt.show()
 
-plt.figure(figsize=(12, 4))
-for outp in range(np.shape(img_out)[0]):
-    for i in range(4):
-        plt.subplot(1, 4, i + 1)
-        plt.imshow(img_out[outp][i, :, :, 0])
-        plt.title('Image size: ' + str(np.shape(img_out[outp][i, :, :, 0])))
-        plt.tight_layout()
+for epoch in range(1000):
+    try:
+        img_in, img_out = gen_train[np.random.randint(0, len(gen_train))]
+        print("sucess!")
+        print(img_in)
+        print(img_out)
+    except:
+        print("fail!")
 
-    plt.suptitle('Output for array: ' + gen_train.outputs[outp])
-    plt.show()
+
+
+
+
+# for inp in range(np.shape(img_in)[0]):
+#     plt.figure(figsize=(12, 5))
+#     for i in range(4):
+#         plt.subplot(1, 4, i + 1)
+#         plt.imshow(img_in[inp][i, :, :, 0])
+#         plt.title('Image size: ' + str(np.shape(img_in[inp][i, :, :, 0])))
+#         plt.tight_layout()
+#     plt.suptitle('Input for array: ' + gen_train.inputs[inp])
+#     plt.show()
+
+# plt.figure(figsize=(12, 4))
+# for outp in range(np.shape(img_out)[0]):
+#     for i in range(4):
+#         plt.subplot(1, 4, i + 1)
+#         plt.imshow(img_out[outp][i, :, :, 0])
+#         plt.title('Image size: ' + str(np.shape(img_out[outp][i, :, :, 0])))
+#         plt.tight_layout()
+
+#     plt.suptitle('Output for array: ' + gen_train.outputs[outp])
+#     plt.show()
