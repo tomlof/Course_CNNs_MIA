@@ -124,11 +124,11 @@ gen_train = DataGenerator(data_path=gen_dir + 'training',
 for epoch in range(1000):
     try:
         img_in, img_out = gen_train[np.random.randint(0, len(gen_train))]
-        print("sucess!")
+        print("epoch {} --- sucess!".format(epoch))
         # print(img_in)
         # print(img_out)
     except:
-        print("fail!")
+        print("epoch {} --- fail!".format(epoch))
 
 
 
