@@ -21,22 +21,22 @@ class BratsDataset(torch.utils.data.Dataset):
         if not os.path.isdir(data_path):
             raise ValueError('The data path is incorrectly defined.')
         self.file_idx = 0
-        self.file_list = [self.data_path + '/' + s for s in
-                          os.listdir(self.data_path)]
+        self.file_list = [self.data_path + '/' + s
+                          for s in os.listdir(self.data_path)]
+
         self.on_epoch_end()
         with np.load(self.file_list[0]) as npzfile:
             self.out_dims = []
             self.in_dims = []
             self.n_channels = 1
+
             for i in range(len(self.inputs)):
                 im = npzfile[self.inputs[i]]
-                self.in_dims.append((self.n_channels,
-                                     *np.shape(im)))
+                self.in_dims.append((self.n_channels, *np.shape(im)))
+
             for i in range(len(self.outputs)):
                 im = npzfile[self.outputs[i]]
-                self.out_dims.append((self.n_channels,
-                                      *np.shape(im)))
-            npzfile.close()
+                self.out_dims.append((self.n_channels, *np.shape(im)))
 
     def __len__(self):
         'Denotes the number of batches per epoch'
@@ -51,6 +51,7 @@ class BratsDataset(torch.utils.data.Dataset):
         list_IDs_temp = [self.file_list[k] for k in indexes]
         # Generate data
         i, o = self.__data_generation(list_IDs_temp)
+
         return i, o
 
     def on_epoch_end(self):
@@ -62,34 +63,40 @@ class BratsDataset(torch.utils.data.Dataset):
         # Initialization
         inputs = []
         outputs = []
-        for i in range(self.inputs.__len__()):
-            inputs.append(np.empty(self.in_dims[i]).astype(np.single))
-        for i in range(self.outputs.__len__()):
-            outputs.append(np.empty(self.out_dims[i]).astype(np.single))
+
+        for i in range(len(self.inputs)):
+            inputs.append(np.empty(self.in_dims[i]).astype(np.float32))
+
+        for i in range(len(self.outputs)):
+            outputs.append(np.empty(self.out_dims[i]).astype(np.float32))
+
         for i, ID in enumerate(temp_list):
             with np.load(ID) as npzfile:
+
                 for idx in range(len(self.inputs)):
-                    x = npzfile[self.inputs[idx]] \
-                        .astype(np.single)
-                    x = np.expand_dims(x, axis=0)
-                    inputs[idx][i, ] = x
+                    x = npzfile[self.inputs[idx]].astype(np.float32)
+                    x = x[np.newaxis, ...]
+                    inputs[idx][i, ...] = x
+
                 for idx in range(len(self.outputs)):
-                    x = npzfile[self.outputs[idx]] \
-                        .astype(np.single)
-                    x = np.expand_dims(x, axis=0)
-                    outputs[idx][i, ] = x
-                npzfile.close()
+                    x = npzfile[self.outputs[idx]].astype(np.float32)
+                    x = x[np.newaxis, ...]
+                    outputs[idx][i, ...] = x
+
         return inputs, outputs
 
 
-gen_dir = "C:/Users/minhm/Documents/GitHub/Course_CNNs_MIA/projects/data/"
+gen_dir = "/Home/guests/guest1/Documents/data/"
+# gen_dir = "/import/software/3ra023vt20/brats/data/"
+
 dataset = BratsDataset(data_path=gen_dir + 'training',
                        inputs=['flair', 't1'],
                        outputs=['mask'])
 
-dataloader = DataLoader(dataset, batch_size=4,
-                        shuffle=True, num_workers=0)
-
+dataloader = DataLoader(dataset,
+                        batch_size=4,
+                        shuffle=True,
+                        num_workers=0)
 
 for img_in, img_out in dataloader:
     plt.subplot(1, 3, 1)
@@ -99,7 +106,6 @@ for img_in, img_out in dataloader:
     plt.subplot(1, 3, 3)
     plt.imshow(img_out[0][0, 0, :, :])
     plt.show()
-
 
 # print("--------------------------------------------------------------------------")
 
