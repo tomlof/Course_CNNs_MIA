@@ -53,6 +53,24 @@ class DataGenerator(keras.utils.Sequence):
                                       *np.shape(im),
                                       self.n_channels))
 
+        self.__iter = 0
+
+    def __iter__(self):
+        """Returns an iterator over the mini-batches.
+        """
+        self.__iter = 0
+        return self
+
+    def __next__(self):
+        """Returns the next mini-batch. Throws a StopIteration when at the end.
+        """
+        if self.__iter < len(self):
+            minibatch = self[self.__iter]
+            self.__iter += 1
+            return minibatch
+        else:
+            raise StopIteration()
+
     def __len__(self):
         'Denotes the number of batches per epoch'
         return int(np.floor((len(self.file_list)) / self.batch_size))
